@@ -155,11 +155,6 @@ func (w *cliWriter) start() error {
 					bts, err = tf.NewMarshalledFrame(nil, now,
 						tf.Evtnum(note.Num), 0, 0, bts, ZebraSchemaId64, 0)
 					panicOn(err)
-					// debug:
-					/*
-					if note.Num == ToParentPing {
-						w.client.replica.alog("client (to parent) writer has '%s' marshalled as: bts(len=%v)='%#v'", note.Num, len(bts), bts)
-					}*/
 				}
 				n, err := w.conn.Write(bts)
 				panicOn(err)
@@ -169,14 +164,7 @@ func (w *cliWriter) start() error {
 				// important piece of logging. do not delete:
 				w.client.replica.dlog("client wrote %s to %s/%s",
 					note.Num, note.To.Nickname, note.To.Addr)
-				if note.Num == ToParentPing {
-					// debug, why no frame wrapper?
-					var frm tf.Frame
-					frm.Unmarshal(bts, true)
-					w.client.replica.dlog("ToParentPing contents were: %s",
-						frm)
-				}
-				
+
 			case <-w.halt.ReqStop.Chan:
 				w.client.replica.dlog("ReqStop received, shutting down")
 				// shutdown requested

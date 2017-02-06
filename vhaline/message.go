@@ -39,7 +39,8 @@ const (
 	// request from parent to child to
 	// sever the tcp connection and
 	// re-establish it.
-	RestartLink NoteEvt = -13
+	RestartLink      NoteEvt = -13
+	AlreadyHaveChild NoteEvt = -14
 )
 
 func (e NoteEvt) String() string {
@@ -66,6 +67,10 @@ func (e NoteEvt) String() string {
 		return "Checkpoint"
 	case CheckpointAck:
 		return "CheckpointAck"
+	case RestartLink:
+		return "RestartLink"
+	case AlreadyHaveChild:
+		return "AlreadyHaveChild"
 	}
 	return "*-unknown-NoteEvt-*"
 }
@@ -106,6 +111,17 @@ type NodeInfo struct {
 
 	Role     string // root, middle, tail.
 	Nickname string
+}
+
+func (n *NodeInfo) ShortId() string {
+	if len(n.Id) > 8 {
+		return n.Id[:8]
+	}
+	return ""
+}
+
+func (n *NodeInfo) Str() string {
+	return fmt.Sprintf("%v/%v", n.ShortId(), n.Addr)
 }
 
 func newNodeId() string {

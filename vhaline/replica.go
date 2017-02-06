@@ -58,6 +58,8 @@ type Replica struct {
 	// we do an async send on this when this node becomes the master
 	ParentFailedNotification chan bool
 	ChildFailedNotification  chan bool
+
+	lastChainReport time.Time
 }
 
 func newMathRandSource() *mr.Rand {
@@ -361,15 +363,14 @@ func (m *Replica) handleFromChild(note *Note) error {
 		m.Child = note.From
 	}
 
-	/* keeps client from re-connecting after temp link failure.
-	if note.From.Id != m.Child.Id {
-		m.ilog("wrong child Id! saw '%s' from '%s', but expected '%s' from '%s'",
-			note.From.Id[:8], note.From.Addr,
-			m.Child.Id[:8], m.Child.Addr)
-		m.ilog("already have a child, rejecting this new one.")
+	if note.From.Addr != m.Child.Addr {
+		m.ilog("rejecting new child '%s' b/c already have '%s'",
+			note.From.Addr,
+			m.Child.Addr)
+		m.sendToChild(newNote(AlreadyHaveChild, &m.Me, &note.From, m.rsrc))
 		return nil
 	}
-	*/
+
 	m.heardFromChild(now)
 
 	switch note.Num {
@@ -463,8 +464,13 @@ func (m *Replica) handleFromParent(note *Note) error {
 
 	switch note.Num {
 
+	case AlreadyHaveChild:
+		m.ilog("got AlreadyHaveChild from parent(%s). Stopping client.", m.Parent.Str())
+		m.client.stop()
+		return nil
+
 	case RestartLink:
-		m.ilog("got RestartLink request from parent. Restarting client.", m.Parent.Id, m.Parent.Addr)
+		m.ilog("got RestartLink request from parent(%s). Restarting client.", m.Parent.Str())
 
 		m.client.stop()
 		m.client = newClient(&m.Me, m)
@@ -547,12 +553,20 @@ func (m *Replica) childAvail() bool {
 func (m *Replica) doHealthCheck() (err error) {
 	beatNum := m.hcc.beat()
 	action := false
+
 	defer func() {
 		if action {
 			m.dlog("doHealthCheck finished, returning err '%v'", err)
 		}
 	}()
 	now := time.Now()
+
+	///	if beatNum%10 == 0 && now.After(m.lastChainReport.Add(time.Minute)) {
+	if beatNum%10 == 0 && now.After(m.lastChainReport.Add(time.Second)) {
+		m.ilog("line status: parent(%s) -> me(%s) -> child(%s)",
+			m.Parent.Str(), m.Me.Str(), m.Child.Str())
+		m.lastChainReport = now
+	}
 
 	if m.Child.Addr != "" {
 
