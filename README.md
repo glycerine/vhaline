@@ -56,10 +56,6 @@ In vhaline, there is only ever
 one parent and one child at each node, so the
 graph is always a straight line chain of nodes.
 
-Although active only in a line, nodes will be
-informed of the whole chain structure on a
-regular basis in order to enable working around
-a crashed process.
 
 I. Electing ourselves root in the chain:
 
