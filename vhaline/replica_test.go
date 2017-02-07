@@ -9,9 +9,7 @@ import (
 	"testing"
 	"time"
 
-	//"github.com/glycerine/cryrand"
 	cv "github.com/glycerine/goconvey/convey"
-	//"github.com/glycerine/sshego"
 	tf "github.com/glycerine/tmframe2"
 )
 
@@ -52,8 +50,8 @@ func Test001FailureChecks(t *testing.T) {
 			err = tail.Start()
 			panicOn(err)
 
-			<-mid.ParentFirstContactSuccessful.Chan // livelock here. in deadlock3.
-			<-tail.ParentFirstContactSuccessful.Chan  // livelock here. in deadlock.trace and deadlock2
+			<-mid.ParentFirstContactSuccessful.Chan  // livelock here. in deadlock3.
+			<-tail.ParentFirstContactSuccessful.Chan // livelock here. in deadlock.trace and deadlock2
 
 			root.ParentMustHaveFailed()
 			root.ChildMustNotHaveFailed() // fail here.
@@ -195,122 +193,6 @@ func Test009Dedup(t *testing.T) {
 		// can skip this for now, not critical
 	})
 }
-
-/*
-func Test010SshSecuresConnections(t *testing.T) {
-
-	if !testing.Short() {
-		t.Skip("skipping test 010 that takes a while. use -short (ironic) to run me.")
-	}
-
-	cv.Convey("We connect as ssh client to our parent, who acts as sshd", t, func() {
-
-		ttl := 3 * time.Second
-		heartbeat := 1 * time.Second
-
-		cfgs := make([]Cfg, 2)
-		for i := 0; i < 2; i++ {
-			lsn, port := getAvailPort()
-			cfgs[i].TTL = ttl
-			cfgs[i].Lsn = lsn
-			cfgs[i].Addr = fmt.Sprintf("127.0.0.1:%v", port)
-			cfgs[i].HeartbeatDur = heartbeat
-		}
-
-		alisterAddr := cfgs[0].Addr
-
-		alister, err := NewReplica(&cfgs[0], "alister")
-		panicOn(err)
-		err = alister.Start()
-		panicOn(err)
-		defer func() {
-			alister.Stop()
-		}()
-
-		srvCfg := sshego.NewSshegoConfig()
-		srvCfg.SkipTOTP = true
-		srvCfg.SkipPassphrase = true
-
-		// take care of things that would be configured
-		// upon installation.
-		SetupSshdTestConfig(srvCfg)
-
-		// these ports will be set by config/cmd line
-		// options; for testing just grab some unused ports.
-		sshdLsn, sshdLsnPort := GetAvailPort() // sshd local listen
-		xportLsn, xport := GetAvailPort()      // xport
-		sshdLsn.Close()
-		xportLsn.Close()
-
-		srvCfg.SshegoSystemMutexPort = xport
-		srvCfg.EmbeddedSSHd.Title = "esshd"
-		srvCfg.EmbeddedSSHd.Addr = fmt.Sprintf("127.0.0.1:%v", sshdLsnPort)
-		srvCfg.EmbeddedSSHd.ParseAddr()
-		srvCfg.EmbeddedSSHdHostDbPath = srvCfg.Tempdir + "/server_hostdb"
-
-		srvCfg.NewEsshd()
-		srvCfg.Esshd.Start()
-		defer func() {
-			srvCfg.Esshd.Stop()
-			<-srvCfg.Esshd.Halt.Done.Chan
-			TempDirCleanup(srvCfg.Origdir, srvCfg.Tempdir)
-		}()
-
-		// create a new acct
-		mylogin, _, rsaPath, _, err := TestCreateNewAccount(srvCfg)
-		panicOn(err)
-		_, _ = mylogin, rsaPath
-
-		cliCfg := sshego.NewSshegoConfig()
-		SetupSshdTestConfig(cliCfg)
-
-		// allow server to be discovered
-		cliCfg.AddIfNotKnown = true
-		cliCfg.TestAllowOneshotConnect = true
-
-		// tell the client not to run an esshd
-		cliCfg.EmbeddedSSHd.Addr = ""
-		cliCfg.RemoteToLocal.Listen.Addr = ""
-
-		dc := sshego.DialConfig{
-			ClientKnownHostsPath: cliCfg.ClientKnownHostsPath,
-			Mylogin:              mylogin,
-			RsaPath:              rsaPath,
-			Sshdhost:             srvCfg.EmbeddedSSHd.Host,
-			Sshdport:             srvCfg.EmbeddedSSHd.Port,
-			DownstreamHostPort:   alisterAddr,
-			TofuAddIfNotKnown:    true,
-		}
-
-		// first time we add the server key
-		_, _, err = dc.Dial()
-		cv.So(err.Error(), cv.ShouldContainSubstring, "Re-run without -new")
-
-		// second time we connect based on that server key
-		dc.TofuAddIfNotKnown = false
-
-		// tell client how to dial alister/root.
-		cfgs[1].CliDial = func() (cliConn net.Conn, err error) {
-			c, _, err := dc.Dial()
-			return c, err
-		}
-
-		bella, err := NewReplica(&cfgs[1], "bella")
-		panicOn(err)
-		panicOn(bella.AddParent(alister.Me.Addr))
-		err = bella.Start()
-		panicOn(err)
-		defer func() {
-			bella.Stop()
-		}()
-
-		time.Sleep(10 * time.Second)
-
-		cv.So(true, cv.ShouldEqual, true) // we should get here.
-	})
-}
-*/
-
 
 func startBackgroundTestTcpServer(serverDone chan bool, payloadByteCount int, confirmationPayload string, confirmationReply string, tcpSrvLsn net.Listener) {
 	go func() {
