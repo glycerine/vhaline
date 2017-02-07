@@ -4,7 +4,6 @@ import (
 	"bytes"
 	crypto "crypto/rand"
 	"fmt"
-	"github.com/glycerine/idem"
 	tf "github.com/glycerine/tmframe2"
 	"github.com/glycerine/zebrapack/msgp"
 	mr "math/rand"
@@ -85,8 +84,7 @@ type Note struct {
 	SendTm    time.Time
 	Nonce     string
 
-	cp        *tf.Frame // for Num == Checkpoint; local only
-	spairhalt *idem.Halter
+	cp *tf.Frame // for Num == Checkpoint; local only
 }
 
 func newNote(evt NoteEvt, from, to *NodeInfo, rsrc *mr.Rand) *Note {

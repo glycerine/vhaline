@@ -56,8 +56,9 @@ type Replica struct {
 	Rot *tf.Rotator
 
 	// we do an async send on this when this node becomes the master
-	ParentFailedNotification chan bool
-	ChildFailedNotification  chan bool
+	ParentFailedNotification     chan bool
+	ChildFailedNotification      chan bool
+	ParentRejectedUsNotification chan bool
 
 	lastChainReport time.Time
 }
@@ -122,8 +123,9 @@ func NewReplica(cfg *Cfg, nickname string) (*Replica, error) {
 		},
 		CheckpointArrivedCh: make(chan *tf.Frame),
 
-		ParentFailedNotification: make(chan bool, 20),
-		ChildFailedNotification:  make(chan bool, 20),
+		ParentFailedNotification:     make(chan bool, 20),
+		ChildFailedNotification:      make(chan bool, 20),
+		ParentRejectedUsNotification: make(chan bool, 20),
 	}
 	r.hcc = newHealthCheckCounter(r.Halt.ReqStop.Chan, r.TTL, r)
 	r.server = newServer(me, r)
@@ -365,11 +367,21 @@ func (m *Replica) handleFromChild(note *Note) error {
 
 	if note.From.Addr != m.Child.Addr {
 		m.ilog("rejecting new child '%s' b/c already have '%s'",
-			note.From.Addr,
-			m.Child.Addr)
+			note.From.Str(),
+			m.Child.Str())
 		m.sendToChild(newNote(AlreadyHaveChild, &m.Me, &note.From, m.rsrc))
+		// give the message a little time to be sent before
+		// killing the client connection
+		pair := m.server.GetPair(note.From.Addr)
+		go func(pair *spair) {
+			time.Sleep(2 * time.Second)
+			// we shutdown the client connection
+			pair.halt.ReqStop.Close()
+		}(pair)
 		return nil
 	}
+	// display the lastest process nonce.
+	m.Child = note.From
 
 	m.heardFromChild(now)
 
@@ -390,35 +402,34 @@ func (m *Replica) handleFromChild(note *Note) error {
 		panic("should never happen that child sends FromChildConnectAck")
 
 	case ToParentPing:
-		m.dlog("sees from child: ToParentPing.")
+		m.dlog("sees from child(%s): ToParentPing.", m.Child.Str())
 		return m.sendToChild(newNote(FromParentPingAck, &m.Me, &note.From, m.rsrc))
 
 	case FromParentPingAck:
-		m.dlog("got FromParentPingAck from child %s' at '%s'",
-			m.Child.Id, m.Child.Addr)
+		m.dlog("got FromParentPingAck from child(%s)", m.Child.Str())
 		panic("should never happen that child sends FromParentPingAck")
 
 	case ToChildPing:
-		m.dlog("got ToChildPing from child %s' at '%s'", m.Child.Id, m.Child.Addr)
+		m.dlog("got ToChildPing from child(%s)", m.Child.Str())
 		panic("should never happen that child sends ToChildPing")
 	case FromChildPingAck:
 		m.dlog("sees from child: FromChildPingAck.")
 		// nothing more
 
 	case ChainInfo:
-		m.dlog("sees from child: ChainInfo.")
+		m.dlog("sees from child(%s): ChainInfo.", m.Child.Str())
 		return m.recvdChainInfo(note)
 
 	case ChainInfoAck:
-		m.dlog("sees from child: ChainInfoAck.")
+		m.dlog("sees from child(%s): ChainInfoAck.", m.Child.Str())
 		// nothing more
 
 	case Checkpoint:
-		m.dlog("got Checkpoint from child %s' at '%s'", m.Child.Id, m.Child.Addr)
+		m.dlog("got Checkpoint from child(%s)", m.Child.Str())
 		panic("should never happen that child sends Checkpoint")
 
 	case CheckpointAck:
-		m.dlog("sees from child CheckpointAck.")
+		m.dlog("sees from child(%s) CheckpointAck.", m.Child.Str())
 		m.recvdAckCheckpoint(note)
 		// nothing further
 
@@ -467,6 +478,10 @@ func (m *Replica) handleFromParent(note *Note) error {
 	case AlreadyHaveChild:
 		m.ilog("got AlreadyHaveChild from parent(%s). Stopping client.", m.Parent.Str())
 		m.client.stop()
+		if len(m.ParentRejectedUsNotification) < cap(m.ParentRejectedUsNotification) {
+			m.ParentRejectedUsNotification <- true
+		}
+
 		return nil
 
 	case RestartLink:
@@ -607,6 +622,12 @@ func (m *Replica) doHealthCheck() (err error) {
 		// over TTL?
 		palive, plastContact, pttl := m.parentLiveness.isAlive(now)
 		if !palive {
+			// is this the first time we've tried to contact parent, and
+			// we've never heard from them ever?
+			if plastContact.IsZero() {
+
+			}
+
 			id := m.Parent.Id
 			if len(id) > 8 {
 				id = id[:8]
@@ -672,9 +693,15 @@ func (m *Replica) sendToParent(reply *Note) error {
 // sendToChild, aka serverReply
 func (m *Replica) sendToChild(reply *Note) error {
 	m.dlog("sendToChild called with '%v'", reply.Num)
+
+	pair := m.server.GetPair(reply.To.Addr)
+	if pair == nil {
+		panic(fmt.Sprintf("bad child address: not found in server.addr2pair : '%s'", reply.To.Addr))
+	}
+
 	select {
 
-	case m.server.OutboundNoteCh <- reply:
+	case pair.OutboundNoteCh <- reply:
 		return nil
 
 	case <-m.Halt.ReqStop.Chan:

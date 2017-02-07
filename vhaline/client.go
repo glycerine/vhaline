@@ -82,8 +82,8 @@ func (c *client) start() error {
 	c.started = true
 	var conn net.Conn
 	var err error
+	c.replica.ilog("client dialing parent at '%s'", c.parent.Addr)
 	if c.cliDial == nil {
-		c.replica.ilog("client dialing parent at '%s'", c.parent.Addr)
 		conn, err = net.Dial("tcp", c.parent.Addr)
 		if err != nil {
 			return err
@@ -94,7 +94,8 @@ func (c *client) start() error {
 			return err
 		}
 	}
-
+	c.replica.ilog("client reached parent at '%s'", c.parent.Addr)
+	c.replica.parentLiveness.heardFrom(time.Now())
 	c.rw = newCliRwpair(c.parent.Addr, conn, c)
 	err = c.rw.start()
 	if err != nil {

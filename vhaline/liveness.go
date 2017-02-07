@@ -16,7 +16,9 @@ type liveness struct {
 }
 
 func newLiveness(ttl time.Duration) liveness {
-	return liveness{ttl: ttl}
+	return liveness{
+		ttl: ttl,
+	}
 }
 
 func (s *liveness) isAlive(now time.Time) (alive bool, lastContact time.Time, ttl time.Duration) {

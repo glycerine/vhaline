@@ -12,18 +12,23 @@ import (
 )
 
 type server struct {
-	me             NodeInfo
-	rws            []*spair
+	me      NodeInfo
+	rws     []*spair
+	halt    idem.Halter
+	started bool
+
+	addr2pair      *AtomicAddrToPair
 	ArrivingNoteCh chan *Note
-	OutboundNoteCh chan *Note
-	halt           idem.Halter
-	started        bool
 
 	ChildConnectionLost *idem.IdemCloseChan
 	lasterr             lasterr
 
 	replica         *Replica
 	pairHasShutdown chan *spair
+}
+
+func (s *server) GetPair(addr string) *spair {
+	return s.addr2pair.Get(addr)
 }
 
 type lasterr struct {
@@ -52,11 +57,12 @@ func (e *lasterr) get() (err error) {
 
 func newServer(me *NodeInfo, r *Replica) *server {
 	return &server{
-		me:             *me,
-		ArrivingNoteCh: make(chan *Note),
-		OutboundNoteCh: make(chan *Note),
-		halt:           *idem.NewHalter(),
+		me:        *me,
+		halt:      *idem.NewHalter(),
+		addr2pair: NewAtomicAddrToPair(),
 
+		// only one ArrivingNoteChan: how we talk to replica
+		ArrivingNoteCh:  make(chan *Note),
 		pairHasShutdown: make(chan *spair, 10),
 
 		// if we loose connection to child, we Close() this
@@ -67,25 +73,34 @@ func newServer(me *NodeInfo, r *Replica) *server {
 
 // server pair: a reader and a writer
 type spair struct {
-	addr   string
-	reader *srvReader
-	writer *srvWriter
-	conn   net.Conn
-	server *server
-	halt   *idem.Halter
+	addr           string
+	reader         *srvReader
+	writer         *srvWriter
+	conn           net.Conn
+	server         *server
+	halt           *idem.Halter
+	remoteAddr     string // differentiate so we only handle the correct Outbounds
+	ArrivingNoteCh chan *Note
+	OutboundNoteCh chan *Note
 }
 
-func newSrvRwpair(addr string, conn net.Conn, server *server) *spair {
+func newSpair(addr string, conn net.Conn, server *server) *spair {
 
 	// halt ties all three structs and two goroutines together.
 	halt := idem.NewHalter()
 	p := &spair{
-		server: server,
-		halt:   halt,
+		server:         server,
+		halt:           halt,
+		remoteAddr:     conn.RemoteAddr().String(),
+		ArrivingNoteCh: server.ArrivingNoteCh,
+		OutboundNoteCh: make(chan *Note),
 	}
 	p.writer = newSrvWriter(addr, conn, server, halt, p)
 	p.reader = newSrvReader(addr, conn, server, halt, p)
 	p.reader.writeme = p.writer.writeme
+
+	// lookup addr, get pair to write to.
+	server.addr2pair.Set(p.remoteAddr, p)
 	return p
 }
 
@@ -125,6 +140,7 @@ func (s *server) removeRw(rw *spair) {
 			return
 		}
 	}
+	s.addr2pair.Del(rw.remoteAddr)
 }
 
 func (s *server) start() error {
@@ -176,7 +192,7 @@ func (s *server) start() error {
 				continue
 			}
 			panicOn(err)
-			p := newSrvRwpair(s.me.Addr, conn, s)
+			p := newSpair(s.me.Addr, conn, s)
 			s.rws = append(s.rws, p)
 			err = p.start()
 			panicOn(err)
@@ -300,9 +316,9 @@ func (r *srvReader) start() error {
 					continue
 				}
 
-				payload = &Note{
-					spairhalt: r.pair.halt,
-				}
+				payload = &Note{}
+				payload.From.Addr = r.pair.remoteAddr
+
 				switch NoteEvt(evt) {
 				case Checkpoint:
 					//if !r.server.replica.isDup(frm) {
@@ -323,6 +339,12 @@ func (r *srvReader) start() error {
 						r.server.replica.sendToChild(newNote(RestartLink, &r.server.replica.Me, &r.server.replica.Child, r.server.replica.rsrc))
 						return
 					}
+
+					// make sure the remoteAddr is what we think it is.
+					// NOTE: this overwrites what the client provided us for From.Addr.
+					// But this is important to be consistent, because it
+					// is how we key the addr2pair map.
+					payload.From.Addr = r.pair.remoteAddr
 				}
 				r.server.replica.dlog("server received a '%s' message of len %v from '%#v'", payload.Num, len(frm.Data), payload.From)
 				srvCh = r.server.ArrivingNoteCh
@@ -392,7 +414,17 @@ func (w *srvWriter) start() error {
 		}()
 		for {
 			select {
-			case note := <-w.server.OutboundNoteCh:
+			case note := <-w.pair.OutboundNoteCh:
+
+				// we can have two or more children temporarily
+				// connected, but sure to route our reply
+				// to the correct child (to tell the new one
+				// to buzz off!).
+				if note.To.Addr != w.pair.remoteAddr {
+					panic("wrong server writer!")
+					continue
+				}
+
 				var bts []byte
 				var err error
 				if note.Num == Checkpoint {
