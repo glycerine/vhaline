@@ -84,7 +84,7 @@ func main() {
 		f.Close()
 	}
 
-	if cfg.CpuProfile || cfg.MemProfile {
+	if cfg.CpuProfile || cfg.MemProfile || cfg.WebProfile {
 		// find an unused port, startin at 6060
 		port := 6060
 		ppaddr := ""

@@ -23,7 +23,7 @@ type VhalineConfig struct {
 	TtlMillisec  int
 	BeatMillisec int
 
-	CpuProfile, MemProfile bool
+	CpuProfile, MemProfile, WebProfile bool
 }
 
 func NewVhalineConfig() *VhalineConfig {
@@ -45,6 +45,7 @@ func (c *VhalineConfig) DefineFlags(fs *flag.FlagSet) {
 
 	fs.BoolVar(&c.CpuProfile, "cpu", false, "activate cpu profiling")
 	fs.BoolVar(&c.MemProfile, "mem", false, "activate memory profiling")
+	fs.BoolVar(&c.WebProfile, "web", false, "activate web based pprof profiling")
 }
 
 // ValidateConfig should be called after myflags.Parse().
