@@ -2,6 +2,7 @@ package vhaline
 
 import (
 	"net"
+	"sync"
 	"time"
 )
 
@@ -26,6 +27,7 @@ type Cfg struct {
 	HeartbeatDur time.Duration
 
 	Verbosity Verbosity
+	verbmutex sync.Mutex
 }
 
 type Verbosity int

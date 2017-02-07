@@ -8,6 +8,9 @@ import (
 // pid, Id, and timestamp. shows up at -debug level.
 func (m *Replica) dlog(format string, args ...interface{}) {
 
+	m.Cfg.verbmutex.Lock()
+	defer m.Cfg.verbmutex.Unlock()
+
 	if m.Cfg.Verbosity >= DEBUG {
 		m.Logger.Output(2,
 			fmt.Sprintf(
@@ -17,6 +20,10 @@ func (m *Replica) dlog(format string, args ...interface{}) {
 
 // -info/INFO log level; these also show up at DEBUG level
 func (m *Replica) ilog(format string, args ...interface{}) {
+
+	m.Cfg.verbmutex.Lock()
+	defer m.Cfg.verbmutex.Unlock()
+
 	if m.Cfg.Verbosity >= INFO {
 		m.Logger.Output(2,
 			fmt.Sprintf(
@@ -26,6 +33,10 @@ func (m *Replica) ilog(format string, args ...interface{}) {
 
 // always/all log
 func (m *Replica) alog(format string, args ...interface{}) {
+
+	m.Cfg.verbmutex.Lock()
+	defer m.Cfg.verbmutex.Unlock()
+
 	m.Logger.Output(2,
 		fmt.Sprintf(
 			fmt.Sprintf("[pid %v] replica (%s) %s", m.Pid, m.Me.ShortId(), format), args...))

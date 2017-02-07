@@ -24,7 +24,7 @@ func Test001FailureChecks(t *testing.T) {
 		// reserve all ports up front, so we don't
 		// get test bleed one into the other across
 		// lingering network connections.
-		n := 10
+		n := 1
 		cfgs := make([]Cfg, n*3)
 		for i := 0; i < n*3; i++ {
 			lsn, port := getAvailPort()
@@ -110,9 +110,17 @@ func Test002MiddleRole(t *testing.T) {
 
 		a, b, c := threeNodeTestSetup()
 
+		a.Cfg.verbmutex.Lock()
+		b.Cfg.verbmutex.Lock()
+		c.Cfg.verbmutex.Lock()
+
 		a.Cfg.Verbosity = DEBUG
 		b.Cfg.Verbosity = DEBUG
 		c.Cfg.Verbosity = DEBUG
+
+		c.Cfg.verbmutex.Unlock()
+		b.Cfg.verbmutex.Unlock()
+		a.Cfg.verbmutex.Unlock()
 
 		now := time.Now()
 
