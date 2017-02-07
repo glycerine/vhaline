@@ -78,6 +78,7 @@ func main() {
 		log.Printf("%snode '%v' started on %v. %v", root, me.Me.Id[:8], me.Me.Addr, comment)
 	}
 	log.Printf("%snode '%s' using ttl=%v and beat=%v.", root, me.Me.Id[:8], c.TTL, c.HeartbeatDur)
+	log.Printf("%s", vhaline.GoVersion())
 	err = me.Start()
 	panicOn(err)
 

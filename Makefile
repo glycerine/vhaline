@@ -1,7 +1,7 @@
 .phony: build test
 
 build:
-	cd vhaline && go install && cd ../cmd/vhaline && go install
+	cd vhaline && make && cd ../cmd/vhaline && make
 
 test:
 	cd vhaline && go test -v
