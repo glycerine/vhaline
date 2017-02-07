@@ -89,11 +89,12 @@ func main() {
 			log.Fatal(err)
 		}
 		pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
 		go func() {
 			for {
 				select {
-				case <-time.After(time.Minute):
+				case <-time.After(5 * time.Minute):
+					fmt.Printf("stopping profile to %v\n", fn)
+					pprof.StopCPUProfile()
 					f.Sync()
 				}
 			}
