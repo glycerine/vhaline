@@ -326,7 +326,7 @@ func (m *Replica) Start() error {
 				}
 
 			case note := <-m.client.ArrivingNoteCh:
-				//m.dlog("new note from parent: '%s'", note.Num)
+				m.dlog("new note from parent: '%s'", note.Num)
 				m.ParentFirstContactSuccessful.Close()
 				err := m.handleFromParent(note)
 				if err != nil {

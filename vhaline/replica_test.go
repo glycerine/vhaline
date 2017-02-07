@@ -11,7 +11,7 @@ import (
 
 	//"github.com/glycerine/cryrand"
 	cv "github.com/glycerine/goconvey/convey"
-	"github.com/glycerine/sshego"
+	//"github.com/glycerine/sshego"
 	tf "github.com/glycerine/tmframe2"
 )
 
@@ -52,11 +52,11 @@ func Test001FailureChecks(t *testing.T) {
 			err = tail.Start()
 			panicOn(err)
 
-			<-mid.ParentFirstContactSuccessful.Chan
-			<-tail.ParentFirstContactSuccessful.Chan
+			<-mid.ParentFirstContactSuccessful.Chan // livelock here. in deadlock3.
+			<-tail.ParentFirstContactSuccessful.Chan  // livelock here. in deadlock.trace and deadlock2
 
 			root.ParentMustHaveFailed()
-			root.ChildMustNotHaveFailed()
+			root.ChildMustNotHaveFailed() // fail here.
 
 			mid.ParentMustNotHaveFailed()
 			mid.ChildMustNotHaveFailed()
@@ -196,6 +196,7 @@ func Test009Dedup(t *testing.T) {
 	})
 }
 
+/*
 func Test010SshSecuresConnections(t *testing.T) {
 
 	if !testing.Short() {
@@ -308,6 +309,8 @@ func Test010SshSecuresConnections(t *testing.T) {
 		cv.So(true, cv.ShouldEqual, true) // we should get here.
 	})
 }
+*/
+
 
 func startBackgroundTestTcpServer(serverDone chan bool, payloadByteCount int, confirmationPayload string, confirmationReply string, tcpSrvLsn net.Listener) {
 	go func() {

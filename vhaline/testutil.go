@@ -1,16 +1,14 @@
 package vhaline
 
 import (
-	"fmt"
-	"github.com/glycerine/cryrand"
-	"github.com/glycerine/sshego"
-	"io/ioutil"
+"time"
+"os"
+"io/ioutil"
+"fmt"
 	"net"
-	"os"
-	"os/exec"
-	"time"
 )
 
+/*
 type TestSetup struct {
 	CliCfg  *sshego.SshegoConfig
 	SrvCfg  *sshego.SshegoConfig
@@ -54,7 +52,7 @@ func SetupSshdTestConfig(cfg *sshego.SshegoConfig) {
 	panicOn(err)
 	//old: cfg.ClientKnownHostsPath = cfg.Tempdir + "/client_known_hosts"
 }
-
+*/
 func MakeAndMoveToTempDir() (origdir string, tmpdir string) {
 
 	// make new temp dir
@@ -115,6 +113,7 @@ func WaitUntilAddrAvailable(addr string, dur time.Duration, tries int) int {
 	return -1
 }
 
+/*
 func VerifyClientServerExchangeAcrossSshd(channelToTcpServer net.Conn, confirmationPayload, confirmationReply string, payloadByteCount int) {
 	m, err := channelToTcpServer.Write([]byte(confirmationPayload))
 	panicOn(err)
@@ -246,6 +245,7 @@ func MakeTestSshClientAndServer(startEsshd bool) *TestSetup {
 		Pw:      pw,
 	}
 }
+*/
 
 func sendViaTcp(hostport string, bts []byte) error {
 	conn, err := net.Dial("tcp", hostport)
