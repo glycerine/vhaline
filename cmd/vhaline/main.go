@@ -48,7 +48,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(1)
 		}
-		p("added upstream parent '%s'", cfg.Upstream)
+		//p("added upstream parent '%s'", cfg.Upstream)
 	}
 	comment := ""
 	root := ""
@@ -98,17 +98,21 @@ func main() {
 	for {
 		select {
 		case <-par0:
-			log.Printf("contacted parent event.")
-			par0 = nil
+			log.Printf("cmd/vhaline/main.go: contacted parent event.")
+			par0 = nil // prevent endless loop on the closed channel.
+
 		case <-chd0:
-			log.Printf("contacted child event.")
+			log.Printf("cmd/vhaline/main.go: contacted child event.")
 			chd0 = nil
+
 		case <-pfail:
-			log.Printf("parent failed event.")
+			log.Printf("cmd/vhaline/main.go: parent failed event.")
+
 		case <-cfail:
-			log.Printf("child failed event.")
+			log.Printf("cmd/vhaline/main.go:child failed event.")
+
 		case <-me.ParentRejectedUsNotification:
-			log.Printf("serious problem: parent rejected us for another.")
+			log.Printf("cmd/vhaline/main.go: serious problem: parent rejected us for another.")
 			os.Exit(1)
 		}
 	}
