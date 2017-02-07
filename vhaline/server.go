@@ -339,8 +339,9 @@ func (r *srvReader) start() error {
 				default:
 					_, err := payload.UnmarshalMsg(frm.Data)
 					if err != nil {
+						payload.From.Addr = r.pair.remoteAddr
 						r.server.replica.ilog("server could not unmarshal as Checkpoint or Note, cutting connection to restart the link.")
-						r.server.replica.sendToChild(r.server.replica.newNote(RestartLink, &r.server.replica.Me, &r.server.replica.Child))
+						r.server.replica.sendToChild(r.server.replica.newNote(RestartLink, &r.server.replica.Me, &payload.From))
 						return
 					}
 

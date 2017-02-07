@@ -714,6 +714,7 @@ func (m *Replica) sendToChild(reply *Note) error {
 
 	pair := m.server.GetPair(reply.To.Addr)
 	if pair == nil {
+		// reply.To.Addr was "" empty string?
 		panic(fmt.Sprintf("bad child address: not found in server.addr2pair : '%s'", reply.To.Addr))
 	}
 

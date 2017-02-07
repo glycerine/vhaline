@@ -56,7 +56,7 @@ func Test001FailureChecks(t *testing.T) {
 			<-tail.ParentFirstContactSuccessful.Chan
 
 			root.ParentMustHaveFailed()
-			root.ChildMustNotHaveFailed() // panic here, on run 7, 12
+			root.ChildMustNotHaveFailed()
 
 			mid.ParentMustNotHaveFailed()
 			mid.ChildMustNotHaveFailed()
@@ -79,7 +79,7 @@ func Test001FailureChecks(t *testing.T) {
 			//p("22222 after waituntil elap=%v, cur beat = %v", time.Since(t0), mid.hcc.lastNum())
 
 			mid.ParentMustHaveFailed()
-			mid.ChildMustNotHaveFailed()
+			mid.ChildMustNotHaveFailed() // why down here?
 
 			tail.FailStop()
 
@@ -90,7 +90,7 @@ func Test001FailureChecks(t *testing.T) {
 			panicOn(err)
 
 			mid.ParentMustHaveFailed()
-			mid.ChildMustHaveFailed() // sometimes child will still be up??? before run 17
+			mid.ChildMustHaveFailed()
 
 			// finish shutdown/cleanup
 			mid.FailStop()
