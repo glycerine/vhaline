@@ -457,14 +457,7 @@ func (m *Replica) handleFromParent(note *Note) error {
 
 	if m.Parent.Id == "" {
 		// remember the first one, for the Id.
-		if m.Parent.Addr != note.From.Addr {
-			panic("next line needs refinement, because we got from a different address than expected; or else there is something else funky going on. either way, figure it out.")
-		}
 		m.Parent = note.From
-	}
-
-	if m.Parent.Id == "" {
-		m.Parent.Id = note.From.Id
 	}
 
 	if note.From.Id != m.Parent.Id {
