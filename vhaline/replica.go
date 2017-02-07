@@ -587,10 +587,12 @@ func (m *Replica) doHealthCheck() (err error) {
 	}()
 	now := time.Now()
 
-	///	if beatNum%10 == 0 && now.After(m.lastChainReport.Add(time.Minute)) {
-	if beatNum%10 == 0 && now.After(m.lastChainReport.Add(time.Second)) {
+	//if beatNum%10 == 0 && now.After(m.lastChainReport.Add(time.Second)) {
+	if beatNum%10 == 0 && now.After(m.lastChainReport.Add(time.Minute)) {
+
 		m.ilog("line status: parent(%s) -> me(%s) -> child(%s).",
 			m.Parent.Str(), m.Me.Str(), m.Child.Str())
+
 		pping := m.parentLiveness.lastContact
 		cping := m.childLiveness.lastContact
 		pmsg, cmsg := "never", "never"
