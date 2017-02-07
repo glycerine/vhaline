@@ -119,6 +119,9 @@ func (rw *spair) stop() {
 	case rw.server.pairHasShutdown <- rw:
 	case <-rw.server.halt.ReqStop.Chan:
 	}
+	if rw != nil && rw.conn != nil {
+		rw.conn.Close()
+	}
 }
 
 func (s *server) stop() {

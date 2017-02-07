@@ -364,8 +364,11 @@ func (m *Replica) handleFromChild(note *Note) error {
 		// remember the first one.
 		m.Child = note.From
 	}
+	p("note.From.Addr='%s'", note.From.Addr)
+	p("m.Child.Addr  ='%s'", m.Child.Addr)
 
-	if note.From.Addr != m.Child.Addr {
+	if note.From.Id != m.Child.Id {
+
 		m.ilog("rejecting new child '%s' b/c already have '%s'",
 			note.From.Str(),
 			m.Child.Str())
@@ -373,13 +376,21 @@ func (m *Replica) handleFromChild(note *Note) error {
 		// give the message a little time to be sent before
 		// killing the client connection
 		pair := m.server.GetPair(note.From.Addr)
-		go func(pair *spair) {
-			time.Sleep(2 * time.Second)
-			// we shutdown the client connection
-			pair.halt.ReqStop.Close()
-		}(pair)
+		if pair != nil {
+			go func(pair *spair) {
+				time.Sleep(1 * time.Second)
+				// we shutdown the client connection
+				pair.halt.ReqStop.Close()
+			}(pair)
+		}
 		return nil
+	} else {
+		// allow child address to change as long
+		// as it is the same process...i.e. on reconnect
+		// from a different client socket endpoint.
+		m.Child.Addr = note.From.Addr
 	}
+
 	// display the lastest process nonce.
 	m.Child = note.From
 
@@ -578,8 +589,18 @@ func (m *Replica) doHealthCheck() (err error) {
 
 	///	if beatNum%10 == 0 && now.After(m.lastChainReport.Add(time.Minute)) {
 	if beatNum%10 == 0 && now.After(m.lastChainReport.Add(time.Second)) {
-		m.ilog("line status: parent(%s) -> me(%s) -> child(%s)",
+		m.ilog("line status: parent(%s) -> me(%s) -> child(%s).",
 			m.Parent.Str(), m.Me.Str(), m.Child.Str())
+		pping := m.parentLiveness.lastContact
+		cping := m.childLiveness.lastContact
+		pmsg, cmsg := "never", "never"
+		if !pping.IsZero() {
+			pmsg = fmt.Sprintf("%v", now.Sub(pping))
+		}
+		if !cping.IsZero() {
+			cmsg = fmt.Sprintf("%v", now.Sub(cping))
+		}
+		m.ilog("last-ping (parent/child): %v/%v", pmsg, cmsg)
 		m.lastChainReport = now
 	}
 

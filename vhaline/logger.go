@@ -11,7 +11,7 @@ func (m *Replica) dlog(format string, args ...interface{}) {
 	if m.Cfg.Verbosity >= DEBUG {
 		m.Logger.Output(2,
 			fmt.Sprintf(
-				fmt.Sprintf("[pid %v] replica (%s) %s", m.Pid, m.Me.Nickname, format), args...))
+				fmt.Sprintf("[pid %v] replica (%s) %s", m.Pid, m.Me.ShortId(), format), args...))
 	}
 }
 
@@ -20,7 +20,7 @@ func (m *Replica) ilog(format string, args ...interface{}) {
 	if m.Cfg.Verbosity >= INFO {
 		m.Logger.Output(2,
 			fmt.Sprintf(
-				fmt.Sprintf("[pid %v] replica (%s) %s", m.Pid, m.Me.Nickname, format), args...))
+				fmt.Sprintf("[pid %v] replica (%s) %s", m.Pid, m.Me.ShortId(), format), args...))
 	}
 }
 
@@ -28,5 +28,5 @@ func (m *Replica) ilog(format string, args ...interface{}) {
 func (m *Replica) alog(format string, args ...interface{}) {
 	m.Logger.Output(2,
 		fmt.Sprintf(
-			fmt.Sprintf("[pid %v] replica (%s) %s", m.Pid, m.Me.Nickname, format), args...))
+			fmt.Sprintf("[pid %v] replica (%s) %s", m.Pid, m.Me.ShortId(), format), args...))
 }
