@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -84,8 +85,22 @@ func main() {
 	}
 
 	if cfg.CpuProfile || cfg.MemProfile {
+		// find an unused port, startin at 6060
+		port := 6060
+		ppaddr := ""
+		i := 0
+		for i = 0; i < 100; i++ {
+			ppaddr = fmt.Sprintf("localhost:%v", port+i)
+			if !addrAlreadyBound(ppaddr) {
+				break
+			}
+		}
+		if i == 100 {
+			panic("could not find port for pprof web server in range 6060-6159")
+		}
+		log.Printf("pprof profiler providing web server on '%s'", ppaddr)
 		go func() {
-			log.Println(http.ListenAndServe("localhost:6060", nil))
+			log.Println(http.ListenAndServe(ppaddr, nil))
 		}()
 	}
 
@@ -116,4 +131,14 @@ func main() {
 			os.Exit(1)
 		}
 	}
+}
+
+func addrAlreadyBound(addr string) bool {
+
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return true
+	}
+	ln.Close()
+	return false
 }
