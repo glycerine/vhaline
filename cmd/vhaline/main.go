@@ -11,7 +11,10 @@ import (
 
 	// profiling:
 	_ "net/http/pprof"
+	"os/signal"
+	"runtime"
 	"runtime/pprof"
+	"syscall"
 
 	"github.com/glycerine/vhaline/vhaline"
 )
@@ -19,6 +22,18 @@ import (
 const ProgramName = "vhaline"
 
 func main() {
+
+	// handle SIGQUIT without stopping, to
+	// get a stacktrace on the fly.
+	sigChan := make(chan os.Signal)
+	go func() {
+		stacktrace := make([]byte, 8192)
+		for _ = range sigChan {
+			length := runtime.Stack(stacktrace, true)
+			fmt.Println(string(stacktrace[:length]))
+		}
+	}()
+	signal.Notify(sigChan, syscall.SIGQUIT)
 
 	myflags := flag.NewFlagSet("myflags", flag.ExitOnError)
 	cfg := &VhalineConfig{}
