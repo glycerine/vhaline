@@ -6,7 +6,6 @@ import (
 	"fmt"
 	tf "github.com/glycerine/tmframe2"
 	"github.com/glycerine/zebrapack/msgp"
-	mr "math/rand"
 	"time"
 )
 
@@ -87,14 +86,16 @@ type Note struct {
 	cp *tf.Frame // for Num == Checkpoint; local only
 }
 
-func newNote(evt NoteEvt, from, to *NodeInfo, rsrc *mr.Rand) *Note {
+func (m *Replica) newNote(evt NoteEvt, from, to *NodeInfo) *Note {
+	m.rsrcmux.Lock() // for m.rsrc use
 	n := &Note{
 		Num:    evt,
 		From:   *from,
 		To:     *to,
 		SendTm: time.Now().UTC(),
-		Nonce:  mathRandHexString(40, rsrc),
+		Nonce:  mathRandHexString(40, m.rsrc),
 	}
+	m.rsrcmux.Unlock()
 	return n
 }
 

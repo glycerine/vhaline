@@ -7,6 +7,7 @@ import (
 	"log"
 	mr "math/rand"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -47,7 +48,8 @@ type Replica struct {
 	// how many heartbeats since we started?
 	// see hcc.beat()
 
-	rsrc *mr.Rand
+	rsrc    *mr.Rand
+	rsrcmux sync.Mutex
 
 	hcc        *healthCheckCounter
 	lastHealth time.Time
@@ -234,7 +236,7 @@ func (m *Replica) Start() error {
 		if err != nil {
 			return fmt.Errorf("error contacting parent: %v", err)
 		}
-		note := newNote(FromChildConnect, &m.Me, &m.Parent, m.rsrc)
+		note := m.newNote(FromChildConnect, &m.Me, &m.Parent)
 
 		select {
 		case m.client.OutboundNoteCh <- note:
@@ -265,7 +267,7 @@ func (m *Replica) Start() error {
 				m.ilog("a checkpoint frame arrived.")
 				childAlive, _, _ := m.childLiveness.isAlive(time.Now())
 				if childAlive {
-					note := newNote(Checkpoint, &m.Me, &m.Child, m.rsrc)
+					note := m.newNote(Checkpoint, &m.Me, &m.Child)
 					note.cp = cp
 					err := m.sendToChild(note)
 					if err != nil {
@@ -372,7 +374,7 @@ func (m *Replica) handleFromChild(note *Note) error {
 		m.ilog("rejecting new child '%s' b/c already have '%s'",
 			note.From.Str(),
 			m.Child.Str())
-		m.sendToChild(newNote(AlreadyHaveChild, &m.Me, &note.From, m.rsrc))
+		m.sendToChild(m.newNote(AlreadyHaveChild, &m.Me, &note.From))
 		// give the message a little time to be sent before
 		// killing the client connection
 		pair := m.server.GetPair(note.From.Addr)
@@ -405,7 +407,7 @@ func (m *Replica) handleFromChild(note *Note) error {
 		if err != nil {
 			return err
 		}
-		return m.sendToChild(newNote(ToChildConnectAck, &m.Me, &m.Child, m.rsrc))
+		return m.sendToChild(m.newNote(ToChildConnectAck, &m.Me, &m.Child))
 
 	case ToChildConnectAck:
 		m.ilog("got FromChildConnect from child %s' at '%s'",
@@ -414,7 +416,7 @@ func (m *Replica) handleFromChild(note *Note) error {
 
 	case ToParentPing:
 		m.dlog("sees from child(%s): ToParentPing.", m.Child.Str())
-		return m.sendToChild(newNote(FromParentPingAck, &m.Me, &note.From, m.rsrc))
+		return m.sendToChild(m.newNote(FromParentPingAck, &m.Me, &note.From))
 
 	case FromParentPingAck:
 		m.dlog("got FromParentPingAck from child(%s)", m.Child.Str())
@@ -521,7 +523,7 @@ func (m *Replica) handleFromParent(note *Note) error {
 
 	case ToChildPing:
 		m.dlog("sees from parent: ToChildPing.")
-		return m.sendToParent(newNote(FromChildPingAck, &m.Me, &note.From, m.rsrc))
+		return m.sendToParent(m.newNote(FromChildPingAck, &m.Me, &note.From))
 
 	case FromChildPingAck:
 		m.dlog("got FromChildPingAck from parent %s' at '%s'", m.Parent.Id, m.Parent.Addr)
@@ -624,7 +626,7 @@ func (m *Replica) doHealthCheck() (err error) {
 
 			action = true
 			err = m.sendToChild(
-				newNote(ToChildPing, &m.Me, &m.Child, m.rsrc))
+				m.newNote(ToChildPing, &m.Me, &m.Child))
 
 			if err != nil {
 				return err
@@ -681,7 +683,7 @@ func (m *Replica) doHealthCheck() (err error) {
 
 				action = true
 				err = m.sendToParent(
-					newNote(ToParentPing, &m.Me, &m.Parent, m.rsrc))
+					m.newNote(ToParentPing, &m.Me, &m.Parent))
 
 				if err != nil {
 					return err
