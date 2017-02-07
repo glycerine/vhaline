@@ -83,12 +83,21 @@ func main() {
 	panicOn(err)
 
 	if cfg.CpuProfile {
-		f, err := os.Create(fmt.Sprintf("./cpu-profile.%v", os.Getpid()))
+		fn := fmt.Sprintf("./cpu-profile.%v", os.Getpid())
+		f, err := os.Create(fn)
 		if err != nil {
 			log.Fatal(err)
 		}
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
+		go func() {
+			for {
+				select {
+				case <-time.After(time.Minute):
+					f.Sync()
+				}
+			}
+		}()
 	}
 
 	if cfg.MemProfile {
