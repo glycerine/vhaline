@@ -37,3 +37,9 @@ const (
 	INFO  Verbosity = 1 // -info
 	DEBUG Verbosity = 2 // -debug
 )
+
+func (c *Cfg) SetVerbosity(v Verbosity) {
+	c.verbmutex.Lock()
+	c.Verbosity = v
+	c.verbmutex.Unlock()
+}

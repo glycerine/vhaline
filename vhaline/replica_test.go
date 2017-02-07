@@ -110,17 +110,9 @@ func Test002MiddleRole(t *testing.T) {
 
 		a, b, c := threeNodeTestSetup()
 
-		a.Cfg.verbmutex.Lock()
-		b.Cfg.verbmutex.Lock()
-		c.Cfg.verbmutex.Lock()
-
-		a.Cfg.Verbosity = DEBUG
-		b.Cfg.Verbosity = DEBUG
-		c.Cfg.Verbosity = DEBUG
-
-		c.Cfg.verbmutex.Unlock()
-		b.Cfg.verbmutex.Unlock()
-		a.Cfg.verbmutex.Unlock()
+		a.Cfg.SetVerbosity(DEBUG)
+		b.Cfg.SetVerbosity(DEBUG)
+		c.Cfg.SetVerbosity(DEBUG)
 
 		now := time.Now()
 
