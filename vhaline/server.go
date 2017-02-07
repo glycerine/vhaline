@@ -200,11 +200,12 @@ func (s *server) start() error {
 			err = p.start()
 			panicOn(err)
 
-			// only one client at a time: wait for the first to exit
-			// before looping and accepting another.
 			select {
+			case <-time.After(20 * time.Millisecond):
+				// service other clients too.
+
 			case <-p.halt.ReqStop.Chan:
-				// okay to loop and accept another.
+
 			case <-s.halt.ReqStop.Chan:
 				for _, rw := range s.rws {
 					rw.stop()

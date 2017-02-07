@@ -89,5 +89,27 @@ func main() {
 		}()
 	}
 
-	select {}
+	// demonstrate how to listen for events:
+
+	par0 := me.ParentFirstContactSuccessful.Chan
+	chd0 := me.ChildFirstContactSuccessful.Chan
+	pfail := me.ParentFailedNotification
+	cfail := me.ChildFailedNotification
+	for {
+		select {
+		case <-par0:
+			log.Printf("contacted parent event.")
+			par0 = nil
+		case <-chd0:
+			log.Printf("contacted child event.")
+			chd0 = nil
+		case <-pfail:
+			log.Printf("parent failed event.")
+		case <-cfail:
+			log.Printf("child failed event.")
+		case <-me.ParentRejectedUsNotification:
+			log.Printf("serious problem: parent rejected us for another.")
+			os.Exit(1)
+		}
+	}
 }

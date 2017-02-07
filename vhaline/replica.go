@@ -364,8 +364,8 @@ func (m *Replica) handleFromChild(note *Note) error {
 		// remember the first one.
 		m.Child = note.From
 	}
-	p("note.From.Addr='%s'", note.From.Addr)
-	p("m.Child.Addr  ='%s'", m.Child.Addr)
+	//	p("note.From.Addr='%s'", note.From.Addr)
+	//	p("m.Child.Addr  ='%s'", m.Child.Addr)
 
 	if note.From.Id != m.Child.Id {
 
