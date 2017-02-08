@@ -26,7 +26,7 @@ type Cfg struct {
 	// to see if they are alive. Defaults to TTL/3.
 	HeartbeatDur time.Duration
 
-	Verbosity Verbosity
+	verbosity Verbosity
 	verbmutex sync.Mutex
 }
 
@@ -40,6 +40,13 @@ const (
 
 func (c *Cfg) SetVerbosity(v Verbosity) {
 	c.verbmutex.Lock()
-	c.Verbosity = v
+	c.verbosity = v
 	c.verbmutex.Unlock()
+}
+
+func (c *Cfg) GetVerbosity() (v Verbosity) {
+	c.verbmutex.Lock()
+	v = c.verbosity
+	c.verbmutex.Unlock()
+	return
 }

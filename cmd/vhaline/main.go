@@ -51,10 +51,10 @@ func main() {
 		HeartbeatDur: time.Millisecond * time.Duration(cfg.BeatMillisec),
 	}
 	if cfg.Info {
-		c.Verbosity = vhaline.INFO
+		c.SetVerbosity(vhaline.INFO)
 	}
 	if cfg.Debug {
-		c.Verbosity = vhaline.DEBUG
+		c.SetVerbosity(vhaline.DEBUG)
 	}
 	me, err := vhaline.NewReplica(c, cfg.Nickname)
 	panicOn(err)
@@ -74,7 +74,7 @@ func main() {
 		root = "mid "
 		comment = fmt.Sprintf("my parent is '%s'", me.Parent.Addr)
 	}
-	if c.Verbosity >= vhaline.INFO {
+	if c.GetVerbosity() >= vhaline.INFO {
 		log.Printf("%snode '%v' started on %v. %v", root, me.Me.Id[:8], me.Me.Addr, comment)
 	}
 	log.Printf("%snode '%s' using ttl=%v and beat=%v.", root, me.Me.Id[:8], c.TTL, c.HeartbeatDur)
