@@ -201,13 +201,6 @@ func (m *Replica) Stop() {
 
 func (m *Replica) Start() error {
 	m.dlog("Start called.")
-	if m.Parent.Addr == "" {
-		// I am root
-		m.Me.Role = "root"
-	} else {
-		// TODO: change this if parent fails and we take over as root.
-		m.Me.Role = "non-root"
-	}
 
 	// log rotation
 	if m.Rot.Prefix == "" {

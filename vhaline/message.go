@@ -6,6 +6,8 @@ import (
 	"fmt"
 	tf "github.com/glycerine/tmframe2"
 	"github.com/glycerine/zebrapack/msgp"
+	"net"
+	"strconv"
 	"time"
 )
 
@@ -105,10 +107,13 @@ type NodeInfo struct {
 	Id   string // long random string in hex
 	Addr string // ssh listening address of this node
 
+	// Addr is broken down into:
+	Host string
+	Port int
+
 	Parent string // nodeid
 	Child  string // nodeid
 
-	Role     string // root, middle, tail.
 	Nickname string
 }
 
@@ -121,6 +126,22 @@ func (n *NodeInfo) ShortId() string {
 
 func (n *NodeInfo) Str() string {
 	return fmt.Sprintf("%v/%v", n.ShortId(), n.Addr)
+}
+
+func (n *NodeInfo) NatsUrl() string {
+	return fmt.Sprintf("nats://%v:%v", n.Host, n.Port)
+}
+
+func (n *NodeInfo) HostPort() (string, int, error) {
+	host, portString, err := net.SplitHostPort(n.Addr)
+	if err != nil {
+		return "", -1, err
+	}
+	port, err := strconv.Atoi(portString)
+	if err != nil {
+		return "", -1, err
+	}
+	return host, port, nil
 }
 
 func newNodeId() string {
